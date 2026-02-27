@@ -75,16 +75,23 @@ app.get('/model/:filename', async (req, res) => {
         const response = await fetch(supabaseFileUrl);
 
         if (!response.ok) {
-            return res.status(500).send("Failed to fetch model");
+            console.error("Supabase fetch failed:", response.status);
+            return res.status(500).send("Failed to fetch model from storage");
         }
 
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
         res.setHeader('Content-Type', 'model/gltf-binary');
-        response.body.pipe(res);
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+
+        res.send(buffer);
     } catch (err) {
+        console.error("Model proxy error:", err);
         res.status(500).json({ error: err.message });
     }
 });
-
 /* =========================
    START SERVER
 ========================= */
