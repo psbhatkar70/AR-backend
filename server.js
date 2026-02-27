@@ -47,7 +47,9 @@ app.get("/dish/:id", async (req, res) => {
       .select("id,dish_name,ingredients,fact,glb_url,chef_word")
       .eq("id", dishId)
       .single();
+    const fileName = data.glb_url.split('/').pop();
 
+    data.glb_url = `https://ar-backend-ox1b.onrender.com/model/${fileName}`;
     if (error) {
         console.log(error);
       return res.status(500).json({ error: error.message });
@@ -61,6 +63,26 @@ app.get("/dish/:id", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
+});
+
+app.get('/model/:filename', async (req, res) => {
+    try {
+        const fileName = req.params.filename;
+
+        const supabaseFileUrl =
+            `https://xutyvqejvribonxmpdri.supabase.co/storage/v1/object/public/Models/${fileName}`;
+
+        const response = await fetch(supabaseFileUrl);
+
+        if (!response.ok) {
+            return res.status(500).send("Failed to fetch model");
+        }
+
+        res.setHeader('Content-Type', 'model/gltf-binary');
+        response.body.pipe(res);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 /* =========================
