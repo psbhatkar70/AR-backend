@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
 import 'dotenv/config'; 
+import { Readable } from 'stream';
 /* =========================
    APP SETUP
 ========================= */
@@ -81,9 +82,7 @@ app.get("/dish/:id", async (req, res) => {
 app.get('/model/:filename', async (req, res) => {
     try {
         const fileName = req.params.filename;
-
-        const supabaseFileUrl =
-            `https://xutyvqejvribonxmpdri.supabase.co/storage/v1/object/public/Models/${fileName}`;
+        const supabaseFileUrl = `https://xutyvqejvribonxmpdri.supabase.co/storage/v1/object/public/Models/${fileName}`;
 
         const response = await fetch(supabaseFileUrl);
 
@@ -92,14 +91,20 @@ app.get('/model/:filename', async (req, res) => {
             return res.status(500).send("Failed to fetch model from storage");
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
+        // 1. Set the precise headers the mobile browser needs for 3D rendering
         res.setHeader('Content-Type', 'model/gltf-binary');
-        res.setHeader('Content-Length', buffer.length);
         res.setHeader('Cache-Control', 'public, max-age=31536000');
+        
+        // 2. Pass through the file size so the client browser knows how much data to expect
+        const contentLength = response.headers.get('content-length');
+        if (contentLength) {
+            res.setHeader('Content-Length', contentLength);
+        }
 
-        res.send(buffer);
+        // 3. The Architecture Upgrade: Pipe the data stream directly to the client
+        // Note: This requires Node.js v17+, which Render supports by default.
+        Readable.fromWeb(response.body).pipe(res);
+
     } catch (err) {
         console.error("Model proxy error:", err);
         res.status(500).json({ error: err.message });
