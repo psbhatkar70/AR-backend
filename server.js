@@ -33,6 +33,19 @@ const supabase = createClient(
  * URL example:
  * http://localhost:3000/dish/3
  */
+
+
+app.get("/health", (req, res) => {
+  // Return a 200 OK immediately
+  res.status(200).json({ 
+    status: "active", 
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString() 
+  });
+});
+
+
+
 app.get("/dish/:id", async (req, res) => {
   const dishId = req.params.id;
 
